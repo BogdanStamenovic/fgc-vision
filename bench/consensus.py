@@ -27,10 +27,17 @@ PERMS = list(itertools.permutations(range(3)))
 def main() -> None:
     emb_name = sys.argv[1]
     shuffle = "--shuffle" in sys.argv
-    z = np.load(D / "pre" / "galleries.npz")
+    gfile = "galleries_reid.npz" if emb_name in ("reid", "dinov2_4crop") else "galleries.npz"
+    z = np.load(D / "pre" / gfile)
     meta = json.loads(str(z["meta"]))
-    E = z[emb_name]
+    E = z[emb_name].astype(np.float64)
     E = E / np.linalg.norm(E, axis=1, keepdims=True)
+    if "--center" in sys.argv:   # remove per-match camera/lighting component
+        keys = [r["key"] for r in meta]
+        for k in set(keys):
+            idx = [i for i, kk in enumerate(keys) if kk == k]
+            E[idx] -= E[idx].mean(0)
+        E = E / np.linalg.norm(E, axis=1, keepdims=True)
     api = json.load(open(D / "api2025.json"))
     M = {f"{m['tournamentKey']}-{m['id']}": m for m in api["matches"]}
     groups = defaultdict(list)   # (key, side) -> row indices, left to right
@@ -105,13 +112,13 @@ def main() -> None:
     # within-team vs between-team similarity of the final assignment
     within = [S[x, y] for rs in team_rows.values() for x, y in itertools.combinations(rs, 2)]
     allpairs = S[np.triu_indices(len(E), 1)]
-    print(f"{emb_name}{' SHUFFLED' if shuffle else ''}: {len(al)} alliances, {len(team_rows)} teams; "
+    print(f"{emb_name}{' SHUFFLED' if shuffle else ''}{' centred' if '--center' in sys.argv else ''}: {len(al)} alliances, {len(team_rows)} teams; "
           f"objective {obj:.1f}; mean within-team sim {np.mean(within):.3f} vs all pairs "
           f"{np.mean(allpairs):.3f}; median alliance margin {np.median(margins):.3f}")
     res = {"alliances": [{"key": a[0], "side": a[1], "rows": a[2], "teams": a[3],
                           "spot_team": [a[3][ti] for ti in p], "margin": float(mg)}
                          for a, p, mg in zip(al, assign, margins)]}
-    tag = emb_name + ("_shuffled" if shuffle else "")
+    tag = emb_name + ("_shuffled" if shuffle else "") + ("_c" if "--center" in sys.argv else "")
     (D / "pre" / f"consensus_{tag}.json").write_text(json.dumps(res, indent=1))
     # montage: one row per team (teams with >= 4 appearances), first crop of each assigned row
     crops = z["crops"]

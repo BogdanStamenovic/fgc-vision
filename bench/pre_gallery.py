@@ -103,7 +103,7 @@ def main() -> None:
     model = YOLO(W)
     emb = embedders()
     rows = []
-    for clip in sorted((D / "pre").glob("*.mp4")):
+    for clip in sorted((D / "pre").glob("*.mp4"))[: int(sys.argv[1]) if len(sys.argv) > 1 else None]:
         g = galleries(model, clip)
         key = clip.stem
         if not g:

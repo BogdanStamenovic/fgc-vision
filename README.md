@@ -3,11 +3,30 @@
 Detects and tracks robots in FIRST Global Challenge field livestreams, and measures whether
 per-robot, per-team stats (climb time, path, game pieces) can be pulled out of them.
 
-**Status: feasibility spike, interim checkpoint (2026-10-04).** The verdict so far:
-detection works, and syncing to match time works. Linking a track to a team does **not**
-work on 2025 footage: about 4 in 10 tracklet joins land on the wrong robot. So nothing in
-this repo should feed per-team numbers into fgc-scout yet. The numbers behind that verdict
-are below.
+**Status: feasibility spike, final verdict (2026-10-04).** Robot detection works.
+Telling *which team* a tracked robot is does **not** work on the 2025 field streams, and
+neither do the per-team metrics that depend on it. Three different approaches (chaining
+tracks, classifying fragments against start galleries, a trained re-ID embedding) all hit
+the same wall: at stream resolution most REV-kit robots look alike, to the models and to
+me. On the one match with hand ground truth, robots are verifiably identified for **17 %**
+of match time. Nothing here should feed per-team numbers into fgc-scout.
+
+One question was answered without vision: the official per-robot fields
+`*RobotOne/Two/Three*` are stations x1/x2/x3 (181/181 teams, see below).
+
+## Verdict per metric
+
+| Metric | Verdict | Measured |
+|---|---|---|
+| Robot detection | works | YOLO11s F1 0.79 at 14 ms/frame; OWLv2 F1 0.84 at 0.51 s/frame |
+| Game-piece detection (2025 balls) | works with caveats | F1 0.73–0.78, 22 labelled balls; 2026 needs retraining |
+| Match-time sync | works with caveats | overlay timer read 100 %, but 4.5 s off the video in 1 of 3 matches |
+| Robot identity → team | **doesn't work** | 31–46 % wrong joins; 17 % of match time verifiably identified |
+| Shots per robot | doesn't work | needs identity |
+| Climb speed per team | doesn't work | needs identity; end state is a crowded pile under the canopy |
+| Path / speed / idle per team | doesn't work | needs identity (per-anonymous-robot is possible) |
+| Climb result per team | not needed | official per-robot data, mapping verified |
+| RobotOne = station x1 | **verified** | 181/181 teams vs ranking totals; best alternative 11/181 |
 
 It consumes [fgc-matchwatch](https://github.com/BogdanStamenovic/fgc-matchwatch) for stream
 discovery and match placement and does not reimplement them.
@@ -131,7 +150,62 @@ appearance floor (cosine ≥ 0.80) and cost. Re-judged on all 66 of its joins:
 | v2 (+ CLIP filter, appearance gate) | 35 | 17 | 2 | 12 | 31–35 % |
 
 Better, but still roughly one wrong join in three. v2 crops were padded more (40 %), which
-makes judging a little easier, so part of the gain may be the judge, not the stitcher. Many switches go onto a referee or a
+makes judging a little easier, so part of the gain may be the judge, not the stitcher.
+
+### Identity by classification against start galleries
+
+Before "go" every robot stands still at its start spot. `bench/gallery_extract.py`
+clusters 0.5 s-spaced detections in that window into 6 start robots; that found all 6
+spots in t2-1, t2-308, t2-361, t2-30, t2-2, t4-3 and t2-50, but only 2–3 of 6 in t2-16
+and t2-304 (people in front of the rail). Each track fragment is then assigned to the
+nearest gallery independently, so errors do not compound.
+
+- **Alliance LEDs are not visible** at stream resolution (upscaled crops checked), so
+  they cannot be the hard constraint; alliance comes only from the start side.
+- **Ground truth is the bottleneck.** Of 71 robot fragments in t2-1, I could name the
+  robot with confidence for 20. Two robots (an orange-LED arm and a black shooter wheel)
+  are distinctive; the other four are near-identical silver cages once they move. t2-361
+  looked the same (one distinctive robot of six), so I stopped labelling there.
+
+| Embedding (frozen) | accuracy on the 20 | alliance correct | robot-vs-non-robot AUC |
+|---|---|---|---|
+| CLIP ViT-B/32 | 0.60 | 0.90 | 0.90 |
+| CLIP ViT-L/14 | 0.65 | 0.70 | 0.96 |
+| DINOv2-base | **0.75** | 0.85 | 0.99 |
+| DINOv2-large | 0.75 | 0.95 | 0.96 |
+| DINOv2-base + trained re-ID head | 0.80 | – | – |
+
+Chance is 0.17. Adding "two fragments on screen at once are different robots" (greedy by
+margin) made it *worse* (0.40–0.50), because unlabelled duplicates and false positives
+take the slots. The trained head (`bench/reid_train.py`: contrastive, positives = two crops
+of one tracklet, negatives = concurrent tracklets, 8 matches, t2-1 held out) gains one
+fragment out of 20, which is noise.
+
+Share of t2-1 match time (6 robots × 150 s) covered by fragments that are identified
+correctly *and verifiably*: **0.17**. Per robot: the black-shooter robot 0.47, the
+arm robot 0.29, the others 0.06–0.17. The 0.24 I could label is the ceiling of what can
+be checked; the rest is unknown, not known to be wrong.
+
+### Cross-match consensus (team identity at the start)
+
+A team's robot looks the same in every match. Each match tells us the 3 teams per side,
+so per alliance only the ordering (1 of 6) is unknown. `bench/consensus.py` solves all
+orderings jointly over 97 matches / 202 alliances (pre-start windows of 136 matches
+downloaded; 28 did not decode, 11 had fewer than 3 robots per side) by maximising
+within-team appearance similarity, with per-match centring to remove camera/lighting.
+Control: the same solver with team labels scrambled.
+
+| Embedding | objective real | objective control | ratio |
+|---|---|---|---|
+| DINOv2-base (10 crops) | 202.5 | 99.3 | 2.04 |
+| DINOv2-base (4 crops) | 188.6 | 94.3 | 2.00 |
+| CLIP ViT-L/14 | 204.9 | 159.4 | 1.29 |
+| trained re-ID head | 267.4 | 177.5 | 1.51 |
+
+**Blind check** (`bench/blind_sheet.py`, 24 team rows, 12 real and 12 control in random
+order, judged before reading the key, `labels/blind_7_judgement.json`): real rows had
+0.64 of crops matching the row's majority robot, control rows 0.48, and I told real from
+control in 15/24 rows (chance 12). A signal, far from usable identity. Many switches go onto a referee or a
 tower AprilTag. The 16 undecidable joins are the deeper problem: at stream resolution
 the REV-kit robots look alike even to a human.
 
@@ -148,6 +222,12 @@ the REV-kit robots look alike even to a human.
   over its 12 ranking matches reproduces it exactly for **181/181 teams** under the mapping
   One/Two/Three = x1/x2/x3. The best other permutation matches 11/181 (`fgc-vision
   check-mapping`, which finds the field pairs generically so it can be rerun on 2026 data).
+
+### End-of-match anchor
+
+At the buzzer in t2-308 all six robots are bunched under the central canopy, overlapping,
+and referees step in front. End-of-match crops are poor identity anchors in 2025; the
+2026 BRACE (one sloped pipe, 3 zones) will likely bunch robots the same way.
 
 ### Country stickers
 
@@ -222,8 +302,13 @@ About 3 h of work, plus GPU time, which means unloading cvoiced.
 
 ## Limitations
 
-- **Identity does not work** (35–46 % switches per join). Every per-team metric depends
-  on it: shots per robot, climb seconds per team, path length per team. None are produced.
+- **Identity does not work**: 31–46 % wrong joins when chaining, 17 % of match time
+  verifiably identified when classifying, a weak cross-match signal (blind 0.64 vs 0.48).
+  Every per-team metric depends on it; none are produced.
+- Fragment ground truth exists for one match only (20 fragments), biased toward the
+  distinctive robots; accuracy on the other robots is unmeasured.
+- The cross-match test reuses pre-start crops from 8 matches whose in-match tracklets
+  trained the re-ID head.
 - Evaluation sets are small (28 robots, 22 balls) and hand-labelled by eye on a 50 px grid;
   thresholds were tuned on the same frames.
 - Pseudo-labels were not hand-corrected; the student inherits OWLv2's mistakes
@@ -244,4 +329,7 @@ About 3 h of work, plus GPU time, which means unloading cvoiced.
   "idleSeconds":18.5,"shots":7},"confidence":{"identity":0.9,"climb":0.8},
   "source":{"tool":"fgc-vision","version":"0.1.0","video":"<id>","t0":1234.5}}`
 - Homography to metres (path length, speed), per-zone time.
-- Appearance-based re-identification across occlusions (the likely next approach class).
+- Anything that beats the resolution limit. Options, none tried: a team-side scout who
+  tags robots by hand at the start of each match (cheap and probably the real answer), our
+  own camera at the event (needs FGC's permission), or per-alliance instead of per-team
+  stats, which need no identity at all.

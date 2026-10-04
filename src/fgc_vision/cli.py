@@ -128,8 +128,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                  "chains": [{"slot": c.slot, "side": c.side, "parts": len(c.parts),
                              "coverage": round(ident.coverage(c), 3), "climb": ident.climb(c)}
                             for c in chains],
-                 "warning": "identity chains measured at 35-46% ID switches per join on t2-1; "
-                            "do not attribute per-team stats from these"})
+                 "warning": "identity measured unusable on 2025 footage (31-46% wrong joins, 17% of match "
+                            "time verifiably identified); do not attribute per-team stats"})
         return 0
     except (SourceError, OSError, ValueError, RuntimeError) as exc:
         print(f"fgc-vision: error: {exc}", file=sys.stderr)
