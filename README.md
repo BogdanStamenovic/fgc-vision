@@ -245,6 +245,131 @@ as OCR.
 | Overlay sync, CPU | ~60 s per clip at 1 Hz sampling (tesseract) | ~60 s |
 | Download, 180 s of 1080p60 | ~140 s wall | – |
 
+## v2: metres, motion-model linking, humans in the loop (2026-10-04 evening)
+
+Bogdan's v2 design: calibrate each fixed camera to metres, link tracks with a motion
+model, and let scouts settle identity by tapping crops in fgc-scout. Measured on t2-1, the
+one match with complete time-sampled hand ground truth. Treat every number as provisional
+for 2026: the 2026 field puts three 201 cm goals side by side in the middle and two
+sloped BRACE pipes, so occlusion will differ.
+
+### Ground truth, and the ceiling it reveals
+
+`bench/gt_points.py`: every 5 s (28 times, 0–149 s), every tracked box in the field is
+shown at 200 px next to the six start robots, and I label it A–F, not-a-robot, duplicate,
+or "can't tell" (`labels/gtp_t2-1.json`). Per-fragment labels were abandoned because
+tracker fragments switch robots mid-way (fragment 2349 starts on robot C, ends on B).
+
+| | share of 6 robots × 28 times |
+|---|---|
+| any tracked box on a robot | **0.45** |
+| box whose robot I could name | **0.27** |
+
+Of 75 robot boxes I could name 46 (61 %). Three robots are distinctive (A: rollers on
+top; C: black wheel and long arm; D: white plate, parks at the rail); B, E and F are
+near-identical silver cages and I named them 10 times in total. After 115 s (the climb)
+I could name nothing. At 142 s no robot had a box at all.
+
+**That ceiling binds humans too.** A scout tapping the same 360 px crop sees what I saw.
+
+### Metres
+
+`calibrate.py`: median frame → carpet mask → rail edges → homography plus one radial
+distortion term, fitted to the rail lines with robust least squares. Check, not used in
+the fit: the regional-zone tape (50 cm from the side rail).
+
+| camera | rails (median abs, m) | tape at (expected 0.50 m) | accepted |
+|---|---|---|---|
+| d1f1 | 0.01–0.03 | 0.49 | yes |
+| d1f3 | 0.03–0.08 | 0.48 | yes |
+| d3f3 | 0.02–0.09 | 0.47 | yes |
+| d3f1, d3f2 | 0.03–0.23 | 0.43, 0.59 | no |
+| d1f2, d3f5 | only 1–3 rails found | tape not found | no |
+
+On d1f1 the six robots standing before "go" map to x = 0.50–0.56 m (red) and 6.65–6.74 m
+(blue), consistent with robots against the rails, and all inside the 4.1 m zone.
+Stationary jitter: 2–15 mm std per axis (box bottom centre as floor contact). Under
+occlusion the bottom edge jumps, and that is not measured. 3 of 7 cameras calibrate
+automatically from rough corner hints; the rest need a manual point set (about 5 min each).
+
+### Linking in metres with a Kalman filter vs the v1 pixel stitcher
+
+Scored on the 46 identified samples: a sample counts if its box sits in a chain seeded
+by the right start robot.
+
+| linker | samples in a chain | correct |
+|---|---|---|
+| v1 pixels, gap-gated nearest | 36 | **20 (0.56)** |
+| metres + constant-velocity Kalman, defaults | 36 | 9 (0.25) |
+| same, best of 180 parameter sets tuned on this test set | 40 | 18 (0.45) |
+
+Metres and velocity **do not beat** the pixel stitcher, even when tuned on the test set.
+The likely cause: occluded boxes have a false bottom edge, so the foot point and its
+velocity jump by metres.
+
+### Human taps (simulated with my labels as the answers)
+
+Fragments are first classified against the start galleries (DINOv2-base, 0.72 of the 46
+samples right with no taps). Each tap asks about one fragment; the simulated scout answers
+with my label at one of its sampled times, and "can't tell" leaves it open.
+
+| taps per match | 0 | 10 | 20 | 25 | 30 | 36 | 40 | 46 |
+|---|---|---|---|---|---|---|---|---|
+| accuracy, least-confident first | 0.72 | 0.72 | 0.72 | 0.80 | 0.89 | **0.95** | 0.96 | 0.98 |
+| accuracy, random order | 0.72 | 0.76 | 0.76 | 0.85 | 0.89 | 0.89 | 0.98 | 0.98 |
+
+- **About 36 taps per match** reach 95 %, and picking the least-confident fragments first
+  is no better than random (the DINOv2 margin is not a usable uncertainty).
+- The 95 % is over **the samples a human can identify at all**, i.e. 27 % of robot × time.
+  The other 73 % stays unknown however many taps are spent. It is also partly circular:
+  the simulated answers are the same labels the score uses.
+- The CLIP join score (AUC 0.86) was not used for tap selection after the margin result;
+  it would select joins, but the tap budget is set by the fragment count anyway (46
+  fragments with any identifiable sample, 117 in total).
+
+Client: `tags.py` posts the crop and the request and reads answers. Exercised against a
+throwaway local fgc-scout (image, request, idempotent re-post, answer, read-back); nothing
+was posted to the live server.
+
+### Pit photos
+
+`GET /api/state` on the live fgc-scout lists 178 teams and **0 photos** (checked
+2026-10-04 20:00 UTC), so the pit-photo prior could not be measured. It would need
+photos of the 2026 robots first.
+
+### Driving metrics in metres (`motion.py`)
+
+Implemented: path, mean and p90 speed, p90 acceleration, RMS jerk, idle time. They are
+computed per continuous run (no bridging over gaps over 0.35 s), on a 0.5 s moving
+average. On t2-1, using only the fragments I verified by hand:
+
+| robot | seconds observed (of 150) | path m | mean speed m/s | idle s |
+|---|---|---|---|---|
+| A | 82 | 19.5 | 0.24 | 47 |
+| C | 28 | 9.5 | 0.34 | 8 |
+| F | 22 | 10.7 | 0.49 | 6 |
+| D | 21 | 0.8 | 0.04 | 20 (parked at the rail) |
+| E | 11 | 1.1 | 0.10 | 7 |
+| B | 0 | – | – | – |
+
+These are what the footage supports for the *best* case: a hand-identified track, and
+still at most 82 of 150 s per robot. That is not a driver-precision measurement.
+
+### Shots
+
+Not built. In 2025 the scoring counts are per ecosystem, shared by both alliances, so
+they would only validate a robot-agnostic shot counter. Attributing a shot to a robot
+needs the identity that the sections above show is missing. For 2026 a shot counter can
+be validated against per-alliance SUPPRESSION UNIT counts if the API reports them, as an
+anonymous or per-alliance metric.
+
+### v2 verdict
+
+Usable identity is not reachable on 2025 stream footage with tapping. About 36 taps per
+match would make the identifiable 27 % of robot-time 95 % right, and the other 73 % is
+either invisible to the camera (55 %) or not nameable by a human from the crop (18 %).
+Metres work on 3 of 7 cameras; motion-model linking in metres is worse than pixels.
+
 ## Install
 
 ```sh

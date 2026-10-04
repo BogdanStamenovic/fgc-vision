@@ -193,3 +193,97 @@ def stations(m: dict[str, Any]) -> dict[str, dict[int, str]]:
         side = "red" if p["station"] // 10 == 1 else "blue"
         out[side][p["station"] % 10] = p["country"]
     return out
+
+
+# ---------- v2: linking in field metres with a constant-velocity Kalman filter ----------
+
+def field_track(tr: Tracklet, cam) -> np.ndarray:
+    """(n, 3) array of t, x, y in metres from box bottom centres."""
+    uv = np.array([[(b[0] + b[2]) / 2, b[3]] for b in tr.box])
+    xy = cam.to_field(uv)
+    return np.c_[np.array(tr.t), xy]
+
+
+class CV:
+    """Constant-velocity Kalman filter on (x, y, vx, vy)."""
+
+    def __init__(self, x: float, y: float, q: float = 4.0, r: float = 0.15):
+        self.s = np.array([x, y, 0.0, 0.0])
+        self.P = np.diag([r * r, r * r, 1.0, 1.0])
+        self.q, self.r = q, r
+
+    def predict(self, dt: float) -> tuple[np.ndarray, np.ndarray]:
+        F = np.eye(4)
+        F[0, 2] = F[1, 3] = dt
+        G = np.array([[dt * dt / 2, 0], [0, dt * dt / 2], [dt, 0], [0, dt]])
+        Q = G @ G.T * self.q
+        return F @ self.s, F @ self.P @ F.T + Q
+
+    def update(self, dt: float, z: np.ndarray) -> None:
+        s, P = self.predict(dt)
+        Hm = np.eye(2, 4)
+        S = Hm @ P @ Hm.T + np.eye(2) * self.r ** 2
+        K = P @ Hm.T @ np.linalg.inv(S)
+        self.s = s + K @ (z - Hm @ s)
+        self.P = (np.eye(4) - K @ Hm) @ P
+
+
+def run_filter(ft: np.ndarray, kf: CV | None = None, t_prev: float | None = None) -> tuple[CV, float]:
+    for t, x, y in ft:
+        if kf is None:
+            kf, t_prev = CV(x, y), t
+            continue
+        kf.update(max(1e-3, t - t_prev), np.array([x, y]))
+        t_prev = t
+    assert kf is not None and t_prev is not None
+    return kf, t_prev
+
+
+def stitch_metric(trs: list[Tracklet], cam, n_robots: int = 6, seed_window: float = 3.0,
+                  max_gap: float = 15.0, gate: float = 4.0, max_speed: float = 2.5,
+                  field: tuple[float, float] = (7.0, 7.0)) -> list[Chain]:
+    """Same seeding and single-pass order as `stitch`, but in metres with velocity.
+
+    A tracklet joins the chain whose Kalman prediction at the tracklet's first sample is
+    closest in Mahalanobis distance, gated at `gate` sigma and by a hard speed limit
+    (`max_speed` m/s over the gap, plus 0.4 m). Tracklets whose feet fall more than 0.5 m
+    outside the field are ignored (people on the rail, wall signs).
+    """
+    fts = {t.id: field_track(t, cam) for t in trs}
+    ok = [t for t in trs
+          if np.median(fts[t.id][:, 1]) > -0.5 and np.median(fts[t.id][:, 1]) < field[0] + 0.5
+          and np.median(fts[t.id][:, 2]) > -0.5 and np.median(fts[t.id][:, 2]) < field[1] + 0.5]
+    early = sorted([t for t in ok if t.start <= seed_window], key=lambda t: -(min(t.end, 30) - t.start))
+    seeds: list[Tracklet] = []
+    for t in early:
+        if len(seeds) == n_robots:
+            break
+        if all(np.hypot(*(fts[t.id][0, 1:] - fts[s.id][0, 1:])) > 0.3 for s in seeds):
+            seeds.append(t)
+    chains = [Chain(i, "red" if fts[s.id][0, 1] < field[0] / 2 else "blue", [s])
+              for i, s in enumerate(seeds)]
+    filt = {c.slot: run_filter(fts[c.parts[0].id]) for c in chains}
+    used = {s.id for s in seeds}
+    for t in ok:
+        if t.id in used:
+            continue
+        z = fts[t.id][0, 1:]
+        best, best_d = None, 1e9
+        for ch in chains:
+            kf, tl = filt[ch.slot]
+            gap = t.start - tl
+            if gap < -0.3 or gap > max_gap:
+                continue
+            s, P = kf.predict(max(gap, 1e-3))
+            if np.hypot(*(z - kf.s[:2])) > 0.4 + max_speed * max(gap, 0.0):
+                continue
+            S = P[:2, :2] + np.eye(2) * kf.r ** 2
+            d = float(np.sqrt((z - s[:2]) @ np.linalg.inv(S) @ (z - s[:2])))
+            if d < gate and d < best_d:
+                best, best_d = ch, d
+        if best is not None:
+            best.parts.append(t)
+            kf, tl = filt[best.slot]
+            filt[best.slot] = run_filter(fts[t.id], kf, tl)
+            used.add(t.id)
+    return chains

@@ -1,0 +1,31 @@
+{
+ "_doc": "Hand identity ground truth for t2-1 (refetched clip, tracks/t2-1.pre.json, start frame 990 = robots leave the rail). A-C red start robots left to right, D-F blue left to right, N not a robot, ? cannot tell with context. Labelled in time order with bench/gt_session.py, each fragment shown 1 s before/after its first box with all earlier labels drawn.",
+ "fragments": {
+  "3": "A",
+  "1": "B",
+  "6": "C",
+  "7": "D",
+  "89": "E",
+  "90": "E",
+  "10": "F",
+  "40": "N",
+  "1690": "F",
+  "1768": "C",
+  "1772": "E",
+  "1858": "E",
+  "1953": "C",
+  "1982": "B",
+  "2016": "N",
+  "11": "N",
+  "2349": "C",
+  "2598": "C",
+  "2803": "N",
+  "2920": "?",
+  "3033": "N",
+  "3052": "?",
+  "3054": "D",
+  "3182": "?",
+  "3407": "E",
+  "3491": "D"
+ }
+}
