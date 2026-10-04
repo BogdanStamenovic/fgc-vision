@@ -49,9 +49,19 @@ fields 1 and 3 today). Every field stream carries the same scorebug: timer, live
 ### Match-time sync
 
 Tesseract on the timer reads 149/149, 108/108 and 131/131 one-per-second samples in three
-clips. The 2:30→2:29 flip pins t=0 to within 0.1 s (frame 958 vs fit 960 on t2-1).
-matchwatch's audio alignment was off by 4.8 s on t2-1 and ~6 s on finals 3; the overlay
-fixes both.
+clips, and the 2:30→2:29 flip is located to 0.1 s. **But the overlay clock is not always
+the video clock.** Checked by eye against the moment robots leave the rail (1 s steps):
+
+| match | robots move (clip s) | overlay t0 | matchwatch (audio) |
+|---|---|---|---|
+| t2-308 | 15.5 | 15.0 | 15.0 |
+| t2-361 | 15.5 | 15.9 | 15.0 |
+| t2-1 | 11.5 | 16.0 (4.5 s late) | 10.2 |
+
+So the overlay is right to ~0.5 s in 2 of 3 matches and 4.5 s late in Match 1 of the
+event. (An earlier version of this README said the overlay fixes matchwatch on t2-1; that
+was backwards.) Any timing metric has to be anchored on the video itself, e.g. on robots
+leaving their start spots.
 
 ### Robot detection (28 hand-labelled robot centres, 7 frames, 5 clips; none in training)
 

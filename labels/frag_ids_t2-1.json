@@ -1,0 +1,8 @@
+{
+ "_doc": "Hand identity of t2-1 fragments (reid/t2-1.npz, gallery_extract.py order) against the 6 start galleries G0-G5 (G0-2 red, G3-5 blue, left to right on screen). Only fragments I am confident about are listed: 20 of 71 robot fragments. G0 (orange-LED arm, coils on top) and G2 (black shooter wheel) are distinctive; G1/G4/G5 are near-identical silver cages at this resolution, G3 has a white plate and orange bristles. N = not a robot (tower AprilTags, referee). Everything else unlabelled = could not tell. This set is biased toward easy fragments.",
+ "G0": [0, 20, 32, 35, 37, 45, 46],
+ "G2": [4, 5, 8, 9, 12, 29, 30, 39, 40],
+ "G3": [2, 41, 64],
+ "G5": [1],
+ "N":  [3, 7, 10, 14, 28, 38, 42, 47, 73, 76]
+}
