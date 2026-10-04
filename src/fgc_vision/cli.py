@@ -43,6 +43,9 @@ def _build_parser() -> argparse.ArgumentParser:
     s.add_argument("--video", help="override: YouTube id")
     s.add_argument("--start", type=float, help="override: match start, seconds into the video")
     s.add_argument("--dry-run", action="store_true", help="only print what would be fetched")
+    s = sub.add_parser("check-mapping", help=(
+        "which station each per-robot official field belongs to (vs ranking totals)"))
+    s.add_argument("--tournament", default="t2")
     s = sub.add_parser("sync", help="match start frame of a clip from the overlay timer")
     s.add_argument("clip")
     s = sub.add_parser("track", help="detect + track robots through a fetched match")
@@ -85,6 +88,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 path, _ = sources.fetch(args.year, args.key, log, args.video, args.start)
                 out({"clip": str(path)})
+        elif args.cmd == "check-mapping":
+            from . import mapping
+            found = mapping.check(sources.official(args.year), args.tournament)
+            out({"year": args.year, "best": found[:1], "top": found[:8],
+                 "note": "perm '123' means Robot One/Two/Three = station x1/x2/x3"})
+            if not found or found[0]["exact"] < found[0]["teams"]:
+                log("no permutation reproduces a ranking total for every team")
+                return 1
         elif args.cmd == "sync":
             from . import overlay
             out(overlay.sync(args.clip, log).__dict__)

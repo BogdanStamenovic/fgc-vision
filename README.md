@@ -143,9 +143,11 @@ the REV-kit robots look alike even to a human.
 - Climb signature (sustained rise ≥45 px with ≤45 px sideways drift): on t2-1 BoT-SORT
   it fires on 1 chain (rise 110 px, 12.8 s); officially 3 robots hung. Since the chains
   are not one robot each, this number is not a usable climb time.
-- **RobotOne = station x1 is not verified.** It needs a correct identity at the end of a
-  match. The post-match results screen lists only team numbers and ranks, not per-robot
-  end values (checked after t2-1).
+- **RobotOne/Two/Three = station x1/x2/x3 is verified, without vision.** The rankings
+  carry a per-team season total, `protectionPoints`. Summing each team's `*Robot<k>Parking`
+  over its 12 ranking matches reproduces it exactly for **181/181 teams** under the mapping
+  One/Two/Three = x1/x2/x3. The best other permutation matches 11/181 (`fgc-vision
+  check-mapping`, which finds the field pairs generically so it can be rerun on 2026 data).
 
 ### Country stickers
 
@@ -192,6 +194,7 @@ git; regenerate them with `bench/autolabel.py` and `train.py` (8 min on the 4060
 | `fgc-vision fetch KEY [--video ID --start S] [--dry-run]` | download the match window at 1080p |
 | `fgc-vision sync CLIP` | match start frame from the overlay timer |
 | `fgc-vision track KEY [--tracker botsort\|bytetrack] [--device cpu]` | detect + track, JSON |
+| `fgc-vision check-mapping [--tournament t2]` | which station each per-robot official field belongs to |
 | `fgc-vision chains KEY` | stitch chains, climb detection, official end values (diagnostic only) |
 
 Global: `--year`, `-v`, `-q`, `--version`. stdout is JSON only. Exit codes: 0 ok,
