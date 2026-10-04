@@ -1,0 +1,7 @@
+{
+ "_doc": "My by-eye verdict on every tracklet join produced by identity.stitch on t2-1 BoT-SORT (bench/identity_run.py t2-1 botsort joins, montage crops 90 px). S = same robot, X = confident switch, Xp = probable switch, U = cannot tell. Index = join number J<n> in the montage.",
+ "S":  [0,5,8,9,12,14,15,17,18,19,20,22,23,28,30,32,33,34,40,41,46,47,48,49,50,60,62,66,67],
+ "X":  [1,2,6,7,10,21,25,27,31,37,38,42,51,52,53,54,55,58,61],
+ "Xp": [29,35,39,43,56,59],
+ "U":  [3,4,11,13,16,24,26,36,44,45,57,63,64,65,68,69]
+}
