@@ -107,7 +107,21 @@ after each join, `bench/identity_run.py KEY botsort joins`):
 | 29 | 19 | 6 | 16 |
 
 That is 35–46 % switches per judgeable join, with ~12 joins per chain: a chain survives
-start to end intact with probability around 1 %. Many switches go onto a referee or a
+start to end intact with probability around 1 %.
+
+Next approach class tried: appearance. On those judged joins, CLIP ViT-B/32 image
+similarity separates same-robot joins from switches with AUC 0.86 (HSV histogram 0.78,
+box-size ratio 0.73; `bench/reid_probe.py`). Stitcher v2 (`bench/stitch_v2.py`) adds a CLIP
+zero-shot "robot vs person vs tower vs balls" filter (drops 10 of 105 tracklets) and an
+appearance floor (cosine ≥ 0.80) and cost. Re-judged on all 66 of its joins:
+
+| stitcher | same | confident switch | probable switch | can't tell | switch rate |
+|---|---|---|---|---|---|
+| v1 (position + gap) | 29 | 19 | 6 | 16 | 35–46 % |
+| v2 (+ CLIP filter, appearance gate) | 35 | 17 | 2 | 12 | 31–35 % |
+
+Better, but still roughly one wrong join in three. v2 crops were padded more (40 %), which
+makes judging a little easier, so part of the gain may be the judge, not the stitcher. Many switches go onto a referee or a
 tower AprilTag. The 16 undecidable joins are the deeper problem: at stream resolution
 the REV-kit robots look alike even to a human.
 
@@ -134,7 +148,7 @@ as OCR.
 | Path | Speed | Per 2.5 min match |
 |---|---|---|
 | YOLO11s + BoT-SORT, 10 Hz, GPU, incl. 1080p decode | 22–23 ms per processed frame | ~36 s |
-| same, CPU only (Ryzen 5 5600) | see `cpu_track.log`, filled in below | |
+| same, CPU only (Ryzen 5 5600, 12 threads) | 238 ms per processed frame | ~6.2 min (≈75 s at 2 Hz) |
 | OWLv2 on GPU | 0.51 s/frame | – (too slow to track with) |
 | Overlay sync, CPU | ~60 s per clip at 1 Hz sampling (tesseract) | ~60 s |
 | Download, 180 s of 1080p60 | ~140 s wall | – |

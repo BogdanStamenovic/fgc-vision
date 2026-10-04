@@ -1,0 +1,7 @@
+{
+ "_doc": "By-eye verdict on every join of bench/stitch_v2.py (CLIP robot filter + appearance floor 0.80) on t2-1 BoT-SORT. Crops padded 40% (v1 montage: 70%-of-size margin), 90 px. S same, X switch, Xp probable switch, U cannot tell (includes a chain sitting on a tower AprilTag, J23).",
+ "S":  [0,5,6,9,11,12,15,17,19,21,27,28,30,33,34,35,36,39,40,42,43,44,45,46,47,49,50,52,55,58,59,62,63,64,65],
+ "X":  [1,3,4,7,10,14,16,22,26,29,31,37,53,56,57,60,61],
+ "Xp": [38,48],
+ "U":  [2,8,13,18,20,23,24,25,32,41,51,54]
+}
