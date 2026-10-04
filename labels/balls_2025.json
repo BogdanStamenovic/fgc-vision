@@ -1,0 +1,8 @@
+{
+ "_doc": "Hand point labels of 2025 game pieces (small patterned 'biodiversity unit' balls; the big silver balls are barriers and are NOT labelled). Balls stacked inside tower storage are not labelled; ambiguous clusters are 'unsure'. Coordinates read off a 50 px grid, so expect +-10 px.",
+ "t2-1__55":  {"robots": [[570,562],[875,390],[1085,398],[1080,503],[1520,573],[1413,603],[1297,435]],
+               "unsure": [[1158,460],[1345,455]]},
+ "t2-1__115": {"robots": [[533,528],[562,570],[603,510],[378,600],[830,422],[866,522],[884,518],[882,495],
+                          [1060,520],[1068,565],[1140,505],[1312,522],[1265,695],[1388,478],[1618,650]],
+               "unsure": [[622,382],[1010,447],[1040,448],[1063,445],[1068,427],[1035,420]]}
+}

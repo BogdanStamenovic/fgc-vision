@@ -1,0 +1,16 @@
+schema: 1
+name: fgc-vision
+description: Detect, track and identify robots in FIRST Global Challenge field livestreams and measure per-robot metrics.
+homepage: https://github.com/BogdanStamenovic/fgc-vision
+tags: [cli, robotics, vision, python]
+install:
+  platforms: [linux]
+  setup:
+    linux:
+      - python -m venv .venv
+      - .venv/bin/python -m pip install -e ".[models]"
+  update:
+    linux: ['.venv/bin/python -m pip install -e ".[models]"']
+  remove: []
+command:
+  linux: .venv/bin/fgc-vision

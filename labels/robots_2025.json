@@ -1,0 +1,10 @@
+{
+ "_doc": "Hand labels by eye on 1920x1080 frames (frames/eval/<clip>__<clip-second>.png). robots = centre points of robots I am sure of; unsure = things that might be a robot (detections there count neither way). Clip second s = match second s-15 (approx, see clip json). Robots fully hidden behind towers or people are not labelled, so recall is over VISIBLE robots.",
+ "t2-1__55":   {"robots": [[800,400],[855,400],[985,430],[1350,545],[1385,432],[1635,680]], "unsure": []},
+ "t2-1__115":  {"robots": [[775,570],[620,418],[1152,442],[1335,450]], "unsure": [[780,410],[1390,435]]},
+ "t2-30__55":  {"robots": [[545,528],[805,518],[1015,495],[1328,550],[1612,790]], "unsure": [[720,505]]},
+ "t2-308__55": {"robots": [[580,432],[1135,488],[1058,380]], "unsure": [[1150,392],[930,370]]},
+ "t2-361__55": {"robots": [[568,402],[1348,475],[1548,655]], "unsure": [[757,368],[940,330]]},
+ "t4-3__55":   {"robots": [[225,628],[990,382],[1152,352],[1652,660]], "unsure": [[670,370]]},
+ "t2-30__115": {"robots": [[902,558],[1550,758],[1328,548]], "unsure": [[570,525],[1296,588]]}
+}
