@@ -1,0 +1,7 @@
+{
+ "_doc": "By-eye team labels on crop sheets (bench/crop_sheet26.py; box index t.i = time t, i-th in-field tracked box sorted by x). Team named from pit photo (AUT, MEX, BIH) or a flag on the robot (NAM). N = not a robot, D2 = duplicate box. Every other box is a robot I could not name.",
+ "t2-46": {"times": [5,25,45,65,85,105,125,145], "N": ["5.3","45.0"], "D2": ["5.6","85.4"],
+           "AUT": ["45.4","85.1","105.0"], "MEX": ["85.0","125.0"], "NAM": ["5.4","65.1","85.3","105.2","125.2"]},
+ "t2-63": {"times": [5,25,45,65,85,105,125,145], "N": [], "D2": ["85.2","125.2"],
+           "BIH": ["5.1","45.2","85.4","125.4","145.1"]}
+}

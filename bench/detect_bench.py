@@ -117,6 +117,7 @@ def yolo_ft(path: str):
 RUNS = Path("/mnt/offload/fgc-vision/runs/detect/runs")
 MODELS = {
     "ft-yolo11n": lambda: yolo_ft(str(RUNS / "yolo11n_1280/weights/best.pt")),
+    "ft26-yolo11s": lambda: yolo_ft("/mnt/offload/fgc-vision/runs26/y11s/weights/best.pt"),
     "ft-yolo11s": lambda: yolo_ft(str(RUNS / "yolo11s_1280/weights/best.pt")),
     "yolow-s": lambda: yolo_world("yolov8s-worldv2.pt"),
     "yolow-l": lambda: yolo_world("yolov8l-worldv2.pt"),

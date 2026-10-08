@@ -18,7 +18,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).parent))
 from detect_bench import owlv2  # noqa: E402
 
-THR = {"robot": 0.25, "ball": 0.30}
+THR = {"robot": float(__import__("os").environ.get("ROBOT_THR", 0.25)), "ball": 0.30}
 CLS = {"robot": 0, "ball": 1}
 
 

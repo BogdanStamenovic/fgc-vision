@@ -23,6 +23,12 @@ import numpy as np
 ROI = {"timer": (850, 855, 1070, 950), "red": (855, 960, 955, 1055),
        "blue": (965, 960, 1065, 1055)}
 MATCH_S = 150
+# 2026 scorebug: same place, but a black frame sits inside the 2025 box and breaks Otsu.
+ROI_TIMER = {2025: (850, 855, 1070, 950), 2026: (868, 868, 1035, 945)}
+
+
+def use_year(year: int) -> None:
+    ROI["timer"] = ROI_TIMER.get(year, ROI_TIMER[2026])
 
 
 class OverlayError(RuntimeError):

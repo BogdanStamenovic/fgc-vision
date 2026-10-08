@@ -370,6 +370,79 @@ match would make the identifiable 27 % of robot-time 95 % right, and the other 7
 either invisible to the camera (55 %) or not nameable by a human from the crop (18 %).
 Metres work on 3 of 7 cameras; motion-model linking in metres is worse than pixels.
 
+## 2026 Day 1 re-measurement (2026-10-08)
+
+Three Day-1 ranking matches (t2-66 and t2-63 on field 3, t2-46 on field 2), 1080p60,
+fetched by DASH fragment (`dash.py`: `--download-sections` fails on post-live DASH with
+ffmpeg exit 183; fetching the ~40 fragments of a match window takes 36 s). Field 5 was
+live again and exposed no fragment list, so it was skipped.
+
+**Camera.** A fixed high wide shot from the front, as Bogdan expected. The goals stand
+together at the back, so the 2025 towers in mid-field are gone. Robots in the open field
+are rarely hidden. What hides them now is the referees and camera crew at the front rail,
+and the pile-up at the tops of the two BRACE pipes at the end.
+
+**Sync.** The 2026 scorebug needs a tighter timer ROI (`overlay.use_year(2026)`). With
+it, 148/149 one-per-second readings agree. Overlay t0 vs matchwatch: +1.2 to +1.9 s.
+
+**Detection** (31 hand-labelled robot centres, 6 frames; `labels/robots_2026.json`):
+
+| model | P | R | F1 |
+|---|---|---|---|
+| YOLO11s fine-tuned on 2026 OWLv2 pseudo-labels (6 other Day-1 matches, 40 epochs) | 0.56 | 0.74 | **0.64** |
+| OWLv2 zero-shot | 0.64 | 0.52 | 0.57 |
+| 2025-trained YOLO11s | 0.86 | 0.39 | 0.53 |
+
+**Visibility and identity**, scored on the crop sheets (`bench/crop_sheet26.py`, every
+in-field box at 8–10 times per match, judged by eye; `labels/gt26_sheet.json`):
+
+| | t2-66 | t2-63 | t2-46 | 2025 t2-1 |
+|---|---|---|---|---|
+| robot × time with a correct tracker box | 0.72 | 0.69 | 0.65 | 0.45 |
+| robot × time visible to me (t2-46 only, rough count at 860 px) | – | – | ≈0.96 | – |
+| robot × time I could name **as a team** | 0.22 | 0.10 | 0.21 | – |
+| robot-seconds in tracks of 20 s or more (of 900) | 402 | 211 | 414 | – |
+| crops on the right robot in those long tracks | 65/80 | – | 90/110 (+ 1 track on a statue) | – |
+
+How a team got named: VAN and COK (pit photo, plus COK's zone-2 and SRB's zone-3 end
+positions on the red pipe); AUT and MEX (pit photo); BIH (pit photo and its large flag
+panel); NAM (flag on the robot). GRE has a pit photo but I could not find it in the stream.
+Teams without a pit photo or a distinctive flag stay anonymous.
+
+**Pit photos.** For a human they help. In these 3 matches I matched 5 of the 6 pit-photo
+teams to stream robots; the name-able share goes from ≈0.10 to ≈0.21 in t2-46. For a
+model they do not help: DINOv2 / CLIP-L retrieval from pit photo to stream crops gives
+precision@k 0.0, 0.0 and 0.2 against chance 0.09, 0.06 and 0.16 (`bench/pit_reid.py`).
+The domain gap (close-up phone photo vs. a 100 px crop) is too large.
+
+**Climbs** (`climb26.py`: box centre within 70 px of the hand-clicked pipe segment,
+progress along it). Officially 16 robots touched or climbed a BRACE in these matches
+(brace state > 0). The detector found 11 climb segments: 7 on red pipes and 4 on blue.
+
+| | red pipes | blue pipes |
+|---|---|---|
+| official climbers | 8 | 8 |
+| detected climb segments | 9 (incl. at least 2 spurious in t2-63) | 2 |
+
+Timing against my hand timing at 3 s steps, on t2-66's red pipe (the one pipe where
+both climbers were detected):
+
+| climber | hand | detector | start / end error |
+|---|---|---|---|
+| zone 3 (SRB by end position) | 96 → 106 s | 99.1 → 109.9 s | +3 / +4 s |
+| zone 2 (COK by end position) | 139 → 147 s | 133.9 → 149.7 s | −5 / +3 s |
+
+On t2-66's blue pipe, 3 hand-timed climbs (≈9 s each) gave 0 detections: the pipe base is
+behind the referees and the blue climbers were not tracked. At the top, zone-3 robots
+overlap one another, even for a human; I under-counted the official climbers by about 1
+robot in 4 of 6 alliances.
+
+**2026 verdict: no-go for per-team driving stats on Fri/Sat matches.** Detection and
+visibility are much better than 2025. Identity is still the limit: only robots with a
+pit photo, a flag or an end anchor can be named, and that is about 10–22 % of robot-time.
+Climb timing works only when the pipe base is in clear view (2 of 5 climbs on one match,
+±3–5 s).
+
 ## Install
 
 ```sh

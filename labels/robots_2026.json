@@ -1,0 +1,9 @@
+{
+ "_doc": "Hand point labels (robot centres, absolute 1920x1080 px, read off bench/grid_full.py's absolute 50 px grid, +-15 px) on 2026 Day-1 frames 2026/eval/<match>__<clip-second>.png (clip starts ~20 s before the match). unsure = possibly a robot / heavily occluded; counts neither way. Robots hidden behind referees are not labelled.",
+ "t2-66__90":  {"robots": [[880,305],[1060,300],[1145,300],[740,465],[1385,520]], "unsure": [[425,470]]},
+ "t2-66__40":  {"robots": [[730,380],[775,440],[890,355],[925,315],[830,280],[1100,280]], "unsure": []},
+ "t2-63__90":  {"robots": [[520,420],[830,300],[895,345],[1385,445]], "unsure": [[1210,290],[410,470]]},
+ "t2-63__140": {"robots": [[695,375],[850,195],[1160,280],[1285,470],[560,500]], "unsure": [[1360,435]]},
+ "t2-46__90":  {"robots": [[680,425],[810,415],[1125,485],[1360,460],[1525,560]], "unsure": [[480,540]]},
+ "t2-46__140": {"robots": [[830,260],[1040,275],[1200,460],[565,560],[1515,560],[650,415]], "unsure": [[560,390]]}
+}
